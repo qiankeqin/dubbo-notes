@@ -600,6 +600,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
                         } catch (Exception e) {
                             logger.warn("destroy invoker[" + invoker.getUrl() + "] faild. " + e.getMessage(), e);
                         }
+
                     }
                 }
             }
