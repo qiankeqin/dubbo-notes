@@ -144,9 +144,11 @@ public class DefaultFuture implements ResponseFuture {
             long start = System.currentTimeMillis();
             lock.lock();
             try {
+                //还没有结果则做等待操作
+                //也就是暂停操作
                 while (!isDone()) {
-                    done.await(timeout, TimeUnit.MILLISECONDS);
-                    if (isDone() || System.currentTimeMillis() - start > timeout) {
+                    done.await(timeout, TimeUnit.MILLISECONDS);//等待，将cpu让出去。等待consumer的返回并唤醒等待队列中的任务
+                    if (isDone() || System.currentTimeMillis() - start > timeout) { //有结果或者超时，break跳出等待
                         break;
                     }
                 }
@@ -170,6 +172,10 @@ public class DefaultFuture implements ResponseFuture {
         CHANNELS.remove(id);
     }
 
+    /**
+     * 判断是否有结果了，response不为null，则拿到结果
+     * @return
+     */
     @Override
     public boolean isDone() {
         return response != null;
