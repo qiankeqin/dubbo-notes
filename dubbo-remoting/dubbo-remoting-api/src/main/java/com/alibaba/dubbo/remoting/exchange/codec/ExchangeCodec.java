@@ -142,6 +142,7 @@ public class ExchangeCodec extends TelnetCodec {
         // get request id.
         long id = Bytes.bytes2long(header, 4);
         if ((flag & FLAG_REQUEST) == 0) {
+            // 对响应结果进行解码
             // decode response.
             Response res = new Response(id);
             if ((flag & FLAG_EVENT) != 0) {
