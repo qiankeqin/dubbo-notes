@@ -93,17 +93,20 @@ public abstract class AbstractConfig implements Serializable {
         if (config == null) {
             return;
         }
+        // 获取标签名称（config名称除去Config或Bean后缀转成小写，例如ProviderConfig --> provider、ServiceBean --> service），拼接前缀，eg：ProviderConfig --> dubbo.provider.
         String prefix = "dubbo." + getTagName(config.getClass()) + ".";
         Method[] methods = config.getClass().getMethods();
         for (Method method : methods) {
             try {
                 String name = method.getName();
+                // 判断setter方法访问修饰符为public并且参数只有一个且是基本类型（包括包装类型、String和Object）
                 if (name.length() > 3 && name.startsWith("set") && Modifier.isPublic(method.getModifiers())
                         && method.getParameterTypes().length == 1 && isPrimitive(method.getParameterTypes()[0])) {
+                    // 将setter驼峰命名去掉set后转成.连接的命名，如setDumpDirectory --> dump.directory
                     String property = StringUtils.camelToSplitName(name.substring(3, 4).toLowerCase() + name.substring(4), ".");
-
                     String value = null;
                     if (config.getId() != null && config.getId().length() > 0) {
+                        // 如果id属性不为空，携带id拼接key尝试从系统属性中获取相关配置
                         String pn = prefix + config.getId() + "." + property;
                         value = System.getProperty(pn);
                         if (!StringUtils.isBlank(value)) {
@@ -111,6 +114,7 @@ public abstract class AbstractConfig implements Serializable {
                         }
                     }
                     if (value == null || value.length() == 0) {
+                        // 如果id属性为空，不带id拼接key尝试从系统属性中获取相关配置
                         String pn = prefix + property;
                         value = System.getProperty(pn);
                         if (!StringUtils.isBlank(value)) {
@@ -123,22 +127,29 @@ public abstract class AbstractConfig implements Serializable {
                             getter = config.getClass().getMethod("get" + name.substring(3));
                         } catch (NoSuchMethodException e) {
                             try {
+                                // boolean类型的属性的getter方法可能以is开头
                                 getter = config.getClass().getMethod("is" + name.substring(3));
                             } catch (NoSuchMethodException e2) {
                                 getter = null;
                             }
                         }
                         if (getter != null) {
+                            // 判断调用getter方法的返回值是否为null
                             if (getter.invoke(config) == null) {
                                 if (config.getId() != null && config.getId().length() > 0) {
                                     value = ConfigUtils.getProperty(prefix + config.getId() + "." + property);
                                 }
+                                /* 如果id属性不为空，携带id拼接key尝试获取相关配置 */
                                 if (value == null || value.length() == 0) {
                                     value = ConfigUtils.getProperty(prefix + property);
                                 }
+                                /* 如果value为空，不带id拼接key尝试获取相关配置 */
                                 if (value == null || value.length() == 0) {
+                                    // 从预制的key映射中获取key
                                     String legacyKey = legacyProperties.get(prefix + property);
                                     if (legacyKey != null && legacyKey.length() > 0) {
+                                        /* 尝试获取配置并转换（dubbo.service.max.retry.providers和dubbo.service.allow.no.provider两个配置需要转换）
+                                        * value的转换*/
                                         value = convertLegacyValue(legacyKey, ConfigUtils.getProperty(legacyKey));
                                     }
                                 }
@@ -147,6 +158,7 @@ public abstract class AbstractConfig implements Serializable {
                         }
                     }
                     if (value != null && value.length() > 0) {
+                        // 如果到这里value不为空，则调用setter方法为属性赋值
                         method.invoke(config, convertPrimitive(method.getParameterTypes()[0], value));
                     }
                 }
