@@ -152,6 +152,7 @@ public class ZookeeperRegistry extends FailbackRegistry {
                     listeners = zkListeners.get(url);
                 }
                 ChildListener zkListener = listeners.get(listener);
+                //结束条件，没有子节点
                 if (zkListener == null) {
                     listeners.putIfAbsent(listener, new ChildListener() {
                         @Override
@@ -160,6 +161,7 @@ public class ZookeeperRegistry extends FailbackRegistry {
                                 child = URL.decode(child);
                                 if (!anyServices.contains(child)) {
                                     anyServices.add(child);
+                                    //递归订阅，也就是说，只订阅根节点
                                     subscribe(url.setPath(child).addParameters(Constants.INTERFACE_KEY, child,
                                             Constants.CHECK_KEY, String.valueOf(false)), listener);
                                 }
